@@ -10,6 +10,12 @@ Add your content using ``reStructuredText`` syntax. See the
 `reStructuredText <https://www.sphinx-doc.org/en/master/usage/restructuredtext/index.html>`_
 documentation for details.
 
+.. raw:: html
+
+    <div id="benchmark-debug" style="margin-top: 2em; padding: 1em; background: #f9f9f9; border: 1px solid #ccc;">
+        <strong>Benchmark data preview:</strong>
+        <pre id="benchmark-data" style="max-height: 300px; overflow: auto;"></pre>
+    </div>
 
 .. toctree::
    :maxdepth: 2
