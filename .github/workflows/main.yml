@@ -1,0 +1,131 @@
+name: CI
+
+on: [push, pull_request]
+
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: ["3.10", "3.11", "3.12", "3.13"]
+    steps:
+    - uses: actions/checkout@v4
+    - name: Cache dependencies
+      uses: actions/cache@v4
+      with:
+        path: ~/.cache/pip
+        key: ${{ runner.os }}-pip-${{ hashFiles('requirements/**') }}
+        restore-keys: |
+          ${{ runner.os }}-pip-
+    - name: Set up Python ${{ matrix.python-version }}
+      uses: actions/setup-python@v5
+      with:
+        python-version: ${{ matrix.python-version }}
+    - name: Install dependencies
+      run: |
+        python -m pip install -U pip
+        python -m pip install -U setuptools wheel
+        pip install -r requirements/test.txt
+  test:
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ["3.10", "3.11", "3.12", "3.13"]
+        marker: [not benchmark]
+        os: [ubuntu-latest]
+    runs-on: "${{ matrix.os }}"
+    steps:
+    - uses: actions/checkout@v4
+    - name: Cache dependencies
+      uses: actions/cache@v4
+      with:
+        path: ~/.cache/pip
+        key: ${{ runner.os }}-pip-${{ hashFiles('requirements/**') }}
+        restore-keys: |
+          ${{ runner.os }}-pip-
+    - name: Set up Python ${{ matrix.python-version }}
+      uses: actions/setup-python@v5
+      with:
+        python-version: ${{ matrix.python-version }}
+    - name: Install dependencies
+      run: |
+        python -m pip install -U pip
+        python -m pip install -U setuptools wheel
+        pip install -r requirements/test.txt
+    - name: Tests
+      run: |
+        pytest -m "${{ matrix.marker }}" --junitxml=junit.xml -o junit_family=legacy --cov-branch --max-runs=3
+    - name: Upload coverage to Codecov
+      uses: codecov/codecov-action@v5
+      env:
+        CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
+    - name: Upload test results to Codecov
+      if: ${{ !cancelled() }}
+      uses: codecov/test-results-action@v1
+      with:
+        token: ${{ secrets.CODECOV_TOKEN }}
+
+  benchmark:
+    needs: [lint]
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: ["3.11"]
+    steps:
+    - uses: actions/checkout@v4
+    - name: Cache dependencies
+      uses: actions/cache@v4
+      with:
+        path: ~/.cache/pip
+        key: ${{ runner.os }}-pip-${{ hashFiles('requirements/**') }}
+        restore-keys: |
+          ${{ runner.os }}-pip-
+    - name: Set up Python ${{ matrix.python-version }}
+      uses: actions/setup-python@v5
+      with:
+        python-version: ${{ matrix.python-version }}
+    - name: Install dependencies
+      run: |
+        python -m pip install "pip<22"
+        python -m pip install --upgrade setuptools wheel
+        pip install -r requirements/test.txt
+    - name: Benchmark
+      env:
+        CI: "True"
+      run: |
+        mkdir -p benchmarks
+        pytest -m "benchmark" --benchmark-json=benchmarks/full.json
+    - name: Split results
+      run: |
+        mv benchmarks/full.json benchmarks/full_raw.json
+        jq '.benchmarks |= map(. + {name: (.name | sub("^test_"; "")), fullname: (.fullname | sub("^.*::test_"; ""))})' benchmarks/full_raw.json > benchmarks/full.json
+        jq '.benchmarks |= map(del(.stats.data))' benchmarks/full.json > benchmarks/summary.json
+        rm benchmarks/full_raw.json
+    - name: Upload benchmark results
+      uses: actions/upload-artifact@v4
+      with:
+        name: benchmark
+        path: benchmarks/*
+  github_release:
+    needs: [test]
+    name: Create Release
+    runs-on: ubuntu-latest
+    if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/')
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Download benchmark results
+        uses: actions/download-artifact@v4
+        with:
+          name: benchmark
+          path: benchmarks
+      - name: Create Release
+        uses: ncipollo/release-action@v1
+        with:
+          artifacts: "dist/*,benchmarks/*"
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+
+
