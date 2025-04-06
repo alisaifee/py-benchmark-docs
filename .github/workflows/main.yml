@@ -124,7 +124,8 @@ jobs:
       run: |
         netlify deploy \
             --site ${{ secrets.NETLIFY_SITE_ID }} \
-            --dir benchmarks \
+            --prod \
+            --dir=benchmarks \
             --message "Benchmarks for $GITHUB_SHA"
   github_release:
     needs: [test]
