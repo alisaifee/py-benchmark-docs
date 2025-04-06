@@ -90,11 +90,14 @@ jobs:
       uses: actions/setup-python@v5
       with:
         python-version: ${{ matrix.python-version }}
+    - name: Set up Node
+      uses: actions/setup-node@v4
     - name: Install dependencies
       run: |
         python -m pip install "pip<22"
         python -m pip install --upgrade setuptools wheel
         pip install -r requirements/test.txt
+        npm install -g netlify-cli
     - name: Benchmark
       env:
         CI: "True"
@@ -120,15 +123,7 @@ jobs:
       with:
         name: benchmark
         path: benchmarks/*
-    - name: Upload benchmark results for gh-pages
-      id: gh-pages-upload
-      uses: actions/upload-pages-artifact@v3 # or specific "vX.X.X" version tag for this action
-      with:
-        path: benchmarks/
 
-    - name: Deploy to Github Pages
-      id: deployment
-      uses: actions/deploy-pages@v4
 
   github_release:
     needs: [test]
