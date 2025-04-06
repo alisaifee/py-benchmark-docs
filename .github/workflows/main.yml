@@ -67,6 +67,12 @@ jobs:
 
   benchmark:
     needs: [lint]
+    permissions:
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
     runs-on: ubuntu-latest
     strategy:
       matrix:
@@ -106,6 +112,12 @@ jobs:
       with:
         name: benchmark
         path: benchmarks/*
+    - name: Deploy to Github Pages
+      id: deployment
+      uses: actions/deploy-pages@v4
+      with:
+        artifact_name: benchmark
+
   github_release:
     needs: [test]
     name: Create Release
