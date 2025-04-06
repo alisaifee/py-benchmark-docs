@@ -67,12 +67,6 @@ jobs:
 
   benchmark:
     needs: [lint]
-    permissions:
-      pages: write
-      id-token: write
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
     runs-on: ubuntu-latest
     strategy:
       matrix:
@@ -124,7 +118,14 @@ jobs:
         name: benchmark
         path: benchmarks/*
 
-
+    - name: Deploy to Netlify
+      env:
+        NETLIFY_AUTH_TOKEN: ${{ secrets.NETLIFY_AUTH_TOKEN }}
+      run: |
+        netlify deploy \
+            --site ${{ secrets.NETLIFY_SITE_ID }} \
+            --dir benchmarks \
+            --message "Benchmarks for $GITHUB_SHA"
   github_release:
     needs: [test]
     name: Create Release
