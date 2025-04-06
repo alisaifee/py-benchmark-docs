@@ -102,11 +102,19 @@ jobs:
         mkdir -p benchmarks
         pytest -m "benchmark" --benchmark-json=benchmarks/full.json
     - name: Split results
+      env:
+        BRANCH_NAME: ${{ github.head_ref || github.ref_name }}
+        COMMIT: ${{ github.sha }}
       run: |
         mv benchmarks/full.json benchmarks/full_raw.json
         jq '.benchmarks |= map(. + {name: (.name | sub("^test_"; "")), fullname: (.fullname | sub("^.*::test_"; ""))})' benchmarks/full_raw.json > benchmarks/full.json
         jq '.benchmarks |= map(del(.stats.data))' benchmarks/full.json > benchmarks/summary.json
         rm benchmarks/full_raw.json
+        mkdir -p benchmarks/${BRANCH_NAME}
+        mkdir -p benchmarks/${COMMIT}
+        cp -r benchmarks/*.json benchmarks/${BRANCH_NAME}
+        cp -r benchmarks/*.json benchmarks/${COMMIT}
+        rm benchmarks/*.json
     - name: Upload benchmark results
       uses: actions/upload-artifact@v4
       with:
