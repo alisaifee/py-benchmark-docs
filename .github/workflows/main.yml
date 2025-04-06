@@ -54,7 +54,7 @@ jobs:
         pip install -r requirements/test.txt
     - name: Tests
       run: |
-        pytest -m "${{ matrix.marker }}" --junitxml=junit.xml -o junit_family=legacy --cov-branch --max-runs=3
+        pytest -m "${{ matrix.marker }}" --junitxml=junit.xml -o junit_family=legacy --cov-branch
     - name: Upload coverage to Codecov
       uses: codecov/codecov-action@v5
       env:
