@@ -1,4 +1,5 @@
 -r main.txt
 pytest
 pytest-benchmark
+pytest-cov
 
